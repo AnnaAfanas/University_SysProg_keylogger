@@ -20,7 +20,6 @@ The logfile contains:
 > lsmod
 
 ### Open logfile
-> sudo gedit /var/log/kbd.log  
+> gedit /var/log/kbd.log  
 
-***!!! IMPORTANT !!!*** You should have root rights to get access to this logfile
 
